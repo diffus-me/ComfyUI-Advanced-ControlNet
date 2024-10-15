@@ -1,6 +1,7 @@
 import numpy as np
 from torch import Tensor
 
+import execution_context
 import folder_paths
 import comfy.sample
 from comfy.model_patcher import ModelPatcher
@@ -29,13 +30,16 @@ comfy.sample.sample_custom = acn_sample_factory(comfy.sample.sample_custom, is_c
 
 class ControlNetLoaderAdvanced:
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
         return {
             "required": {
-                "control_net_name": (folder_paths.get_filename_list("controlnet"), ),
+                "control_net_name": (folder_paths.get_filename_list(context, "controlnet"), ),
             },
             "optional": {
                 "tk_optional": ("TIMESTEP_KEYFRAME", ),
+            },
+            "hidden": {
+                "context": "EXECUTION_CONTEXT"
             }
         }
 
@@ -47,25 +51,29 @@ class ControlNetLoaderAdvanced:
     def load_controlnet(self, control_net_name,
                         tk_optional: TimestepKeyframeGroup=None,
                         timestep_keyframe: TimestepKeyframeGroup=None,
+                        context: execution_context.ExecutionContext=None
                         ):
         if timestep_keyframe is not None: # backwards compatibility
             tk_optional = timestep_keyframe
-        controlnet_path = folder_paths.get_full_path("controlnet", control_net_name)
+        controlnet_path = folder_paths.get_full_path(context, "controlnet", control_net_name)
         controlnet = load_controlnet(controlnet_path, tk_optional)
         return (controlnet,)
     
 
 class DiffControlNetLoaderAdvanced:
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
         return {
             "required": {
                 "model": ("MODEL",),
-                "control_net_name": (folder_paths.get_filename_list("controlnet"), )
+                "control_net_name": (folder_paths.get_filename_list(context, "controlnet"), )
             },
             "optional": {
                 "tk_optional": ("TIMESTEP_KEYFRAME", ),
                 "autosize": ("ACNAUTOSIZE", {"padding": 160}),
+            },
+            "hidden": {
+                "context": "EXECUTION_CONTEXT"
             }
         }
     
@@ -76,11 +84,12 @@ class DiffControlNetLoaderAdvanced:
 
     def load_controlnet(self, control_net_name, model,
                         tk_optional: TimestepKeyframeGroup=None,
-                        timestep_keyframe: TimestepKeyframeGroup=None
+                        timestep_keyframe: TimestepKeyframeGroup=None,
+                        context: execution_context.ExecutionContext=None
                         ):
         if timestep_keyframe is not None: # backwards compatibility
             tk_optional = timestep_keyframe
-        controlnet_path = folder_paths.get_full_path("controlnet", control_net_name)
+        controlnet_path = folder_paths.get_full_path(context, "controlnet", control_net_name)
         controlnet = load_controlnet(controlnet_path, tk_optional, model)
         if is_advanced_controlnet(controlnet):
             controlnet.verify_all_weights()

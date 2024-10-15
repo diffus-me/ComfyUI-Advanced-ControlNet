@@ -1,6 +1,7 @@
 from torch import Tensor
 import math
 
+import execution_context
 import folder_paths
 
 from .control_plusplus import load_controlnetplusplus, PlusPlusType, PlusPlusInput, PlusPlusInputGroup, PlusPlusImageWrapper
@@ -9,11 +10,14 @@ from .utils import BIGMAX
 
 class PlusPlusLoaderAdvanced:
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
         return {
             "required": {
                 "plus_input": ("PLUS_INPUT", ),
-                "name": (folder_paths.get_filename_list("controlnet"), ),
+                "name": (folder_paths.get_filename_list(context, "controlnet"), ),
+            },
+            "hidden": {
+                "context": "EXECUTION_CONTEXT"
             }
         }
     
@@ -22,8 +26,8 @@ class PlusPlusLoaderAdvanced:
 
     CATEGORY = "Adv-ControlNet 🛂🅐🅒🅝/ControlNet++"
 
-    def load_controlnet_plusplus(self, plus_input: PlusPlusInputGroup, name: str):
-        controlnet_path = folder_paths.get_full_path("controlnet", name)
+    def load_controlnet_plusplus(self, plus_input: PlusPlusInputGroup, name: str, context: execution_context.ExecutionContext):
+        controlnet_path = folder_paths.get_full_path(context, "controlnet", name)
         controlnet = load_controlnetplusplus(controlnet_path)
         controlnet.verify_control_type(name, plus_input)
         return (controlnet, PlusPlusImageWrapper(plus_input),)
@@ -31,11 +35,14 @@ class PlusPlusLoaderAdvanced:
 
 class PlusPlusLoaderSingle:
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
         return {
             "required": {
-                "name": (folder_paths.get_filename_list("controlnet"), ),
+                "name": (folder_paths.get_filename_list(context, "controlnet"), ),
                 "control_type": (PlusPlusType._LIST_WITH_NONE, {"default": PlusPlusType.NONE}, ),
+            },
+            "hidden": {
+                "context": "EXECUTION_CONTEXT"
             }
         }
     
@@ -44,8 +51,8 @@ class PlusPlusLoaderSingle:
 
     CATEGORY = "Adv-ControlNet 🛂🅐🅒🅝/ControlNet++"
 
-    def load_controlnet_plusplus(self, name: str, control_type: str):
-        controlnet_path = folder_paths.get_full_path("controlnet", name)
+    def load_controlnet_plusplus(self, name: str, control_type: str, context: execution_context.ExecutionContext):
+        controlnet_path = folder_paths.get_full_path(context, "controlnet", name)
         controlnet = load_controlnetplusplus(controlnet_path)
         controlnet.single_control_type = control_type
         controlnet.verify_control_type(name)
