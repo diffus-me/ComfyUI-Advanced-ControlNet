@@ -1,5 +1,6 @@
 from torch import Tensor
 
+import execution_context
 import folder_paths
 from nodes import VAEEncode
 import comfy.utils
@@ -13,10 +14,10 @@ from .control import load_sparsectrl, load_controlnet, ControlNetAdvanced, Spars
 # node for SparseCtrl loading
 class SparseCtrlLoaderAdvanced:
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
         return {
             "required": {
-                "sparsectrl_name": (folder_paths.get_filename_list("controlnet"), ),
+                "sparsectrl_name": (folder_paths.get_filename_list(context, "controlnet"), ),
                 "use_motion": ("BOOLEAN", {"default": True}, ),
                 "motion_strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.001}, ),
                 "motion_scale": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.001}, ),
@@ -28,6 +29,9 @@ class SparseCtrlLoaderAdvanced:
                 "sparse_hint_mult": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.001}, ),
                 "sparse_nonhint_mult": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.001}, ),
                 "sparse_mask_mult": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.001}, ),
+            },
+            "hidden": {
+                "context": "EXECUTION_CONTEXT"
             }
         }
     
@@ -37,8 +41,9 @@ class SparseCtrlLoaderAdvanced:
     CATEGORY = "Adv-ControlNet 🛂🅐🅒🅝/SparseCtrl"
 
     def load_controlnet(self, sparsectrl_name: str, use_motion: bool, motion_strength: float, motion_scale: float, sparse_method: SparseMethod=SparseSpreadMethod(), tk_optional: TimestepKeyframeGroup=None,
-                        context_aware=SparseContextAware.NEAREST_HINT, sparse_hint_mult=1.0, sparse_nonhint_mult=1.0, sparse_mask_mult=1.0):
-        sparsectrl_path = folder_paths.get_full_path("controlnet", sparsectrl_name)
+                        context_aware=SparseContextAware.NEAREST_HINT, sparse_hint_mult=1.0, sparse_nonhint_mult=1.0, sparse_mask_mult=1.0,
+                        context: execution_context.ExecutionContext=None):
+        sparsectrl_path = folder_paths.get_full_path(context, "controlnet", sparsectrl_name)
         sparse_settings = SparseSettings(sparse_method=sparse_method, use_motion=use_motion, motion_strength=motion_strength, motion_scale=motion_scale,
                                          context_aware=context_aware,
                                          sparse_mask_mult=sparse_mask_mult, sparse_hint_mult=sparse_hint_mult, sparse_nonhint_mult=sparse_nonhint_mult)
@@ -48,11 +53,11 @@ class SparseCtrlLoaderAdvanced:
 
 class SparseCtrlMergedLoaderAdvanced:
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
         return {
             "required": {
-                "sparsectrl_name": (folder_paths.get_filename_list("controlnet"), ),
-                "control_net_name": (folder_paths.get_filename_list("controlnet"), ),
+                "sparsectrl_name": (folder_paths.get_filename_list(context, "controlnet"), ),
+                "control_net_name": (folder_paths.get_filename_list(context, "controlnet"), ),
                 "use_motion": ("BOOLEAN", {"default": True}, ),
                 "motion_strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.001}, ),
                 "motion_scale": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.001}, ),
@@ -60,6 +65,9 @@ class SparseCtrlMergedLoaderAdvanced:
             "optional": {
                 "sparse_method": ("SPARSE_METHOD", ),
                 "tk_optional": ("TIMESTEP_KEYFRAME", ),
+            },
+            "hidden": {
+                "context": "EXECUTION_CONTEXT"
             }
         }
     
@@ -68,9 +76,9 @@ class SparseCtrlMergedLoaderAdvanced:
 
     CATEGORY = "Adv-ControlNet 🛂🅐🅒🅝/SparseCtrl/experimental"
 
-    def load_controlnet(self, sparsectrl_name: str, control_net_name: str, use_motion: bool, motion_strength: float, motion_scale: float, sparse_method: SparseMethod=SparseSpreadMethod(), tk_optional: TimestepKeyframeGroup=None):
-        sparsectrl_path = folder_paths.get_full_path("controlnet", sparsectrl_name)
-        controlnet_path = folder_paths.get_full_path("controlnet", control_net_name)
+    def load_controlnet(self, sparsectrl_name: str, control_net_name: str, use_motion: bool, motion_strength: float, motion_scale: float, sparse_method: SparseMethod=SparseSpreadMethod(), tk_optional: TimestepKeyframeGroup=None, context: execution_context.ExecutionContext=None):
+        sparsectrl_path = folder_paths.get_full_path(context, "controlnet", sparsectrl_name)
+        controlnet_path = folder_paths.get_full_path(context, "controlnet", control_net_name)
         sparse_settings = SparseSettings(sparse_method=sparse_method, use_motion=use_motion, motion_strength=motion_strength, motion_scale=motion_scale, merged=True)
         # first, load normal controlnet
         controlnet = load_controlnet(controlnet_path, timestep_keyframe=tk_optional)

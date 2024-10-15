@@ -1,3 +1,4 @@
+import execution_context
 import folder_paths
 import comfy.utils
 import comfy.model_detection
@@ -34,15 +35,18 @@ def convert_cn_lora_from_diffusers(cn_model: ModelPatcher, lora_path: str):
 
 class ControlNetLoaderWithLoraAdvanced:
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
         return {
             "required": {
-                "control_net_name": (folder_paths.get_filename_list("controlnet"), ),
-                "cn_lora_name": (folder_paths.get_filename_list("controlnet"), ),
+                "control_net_name": (folder_paths.get_filename_list(context, "controlnet"), ),
+                "cn_lora_name": (folder_paths.get_filename_list(context, "controlnet"), ),
                 "cn_lora_strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.001}),
             },
             "optional": {
                 "timestep_keyframe": ("TIMESTEP_KEYFRAME", ),
+            },
+            "hidden": {
+                "context": "EXECUTION_CONTEXT"
             }
         }
 
@@ -52,14 +56,15 @@ class ControlNetLoaderWithLoraAdvanced:
     CATEGORY = "Adv-ControlNet 🛂🅐🅒🅝/LOOSEControl"
 
     def load_controlnet(self, control_net_name, cn_lora_name, cn_lora_strength: float,
-                        timestep_keyframe: TimestepKeyframeGroup=None
+                        timestep_keyframe: TimestepKeyframeGroup=None,
+                        context: execution_context.ExecutionContext=None,
                         ):
-        controlnet_path = folder_paths.get_full_path("controlnet", control_net_name)
+        controlnet_path = folder_paths.get_full_path(context, "controlnet", control_net_name)
         controlnet: ControlNetAdvanced = load_controlnet(controlnet_path, timestep_keyframe)
         if not isinstance(controlnet, ControlNetAdvanced):
             raise ValueError("Type {} is not compatible with CN LoRA features at this time.")
         # now, try to load CN LoRA
-        lora_path = folder_paths.get_full_path("controlnet", cn_lora_name)
+        lora_path = folder_paths.get_full_path(context, "controlnet", cn_lora_name)
         lora_data = convert_cn_lora_from_diffusers(cn_model=controlnet.control_model_wrapped, lora_path=lora_path)
         # apply patches to wrapped control_model
         controlnet.control_model_wrapped.add_patches(lora_data, strength_patch=cn_lora_strength)
